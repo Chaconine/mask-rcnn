@@ -3,6 +3,54 @@ import numpy as np
 import torch
 
 from PIL import Image
+from rcnn.parser import parse
+
+
+class VocalCallsDataset(torch.utils.data.Dataset):
+    def __init__(self, root, transforms):
+        self.root = root
+        self.transforms = transforms
+        # Load all image files, sorting them to ensure that they are aligned
+        self.imgs = list(
+            sorted(os.listdir(os.path.join(root, "white18_trainingData"))))
+        # Load bounding boxes
+        self.target = parse()
+
+    def __getitem__(self, idx):
+        # Load images and masks
+        img_path = os.path.join(
+            self.root, "white18_trainingData", self.imgs[idx])
+        img = Image.open(img_path).convert("RGB")
+
+        # Get bounding box coordinates for each mask
+        num_objs = len(self.target[img_path]["boxes"])
+        boxes = self.target[img_path]["boxes"]
+
+        # Convert everything into a torch.Tensor
+        boxes = torch.as_tensor(boxes, dtype=torch.float32)
+        # There is only one class
+        labels = torch.ones((num_objs,), dtype=torch.int64)
+
+        image_id = torch.tensor([idx])
+        area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+        # Suppose all instances are not crowd
+        iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
+
+        target = self.target[img_path]
+        target["boxes"] = boxes
+        target["labels"] = labels
+        target["image_id"] = image_id
+        target["area"] = area
+        target["iscrowd"] = iscrowd
+
+        if self.transforms is not None:
+            img, target = self.transforms(img, target)
+
+        return img, target
+
+    def __len__(self):
+        return len(self.imgs)
+
 
 class PennFudanDataset(torch.utils.data.Dataset):
     def __init__(self, root, transforms):
@@ -38,8 +86,8 @@ class PennFudanDataset(torch.utils.data.Dataset):
             xmax = np.max(pos[1])
             ymin = np.min(pos[0])
             ymax = np.max(pos[0])
-            boxes.append([xmin,ymin,xmax,ymax])
-        
+            boxes.append([xmin, ymin, xmax, ymax])
+
         # Convert everything into a torch.Tensor
         boxes = torch.as_tensor(boxes, dtype=torch.float32)
         # There is only one class

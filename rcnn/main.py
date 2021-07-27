@@ -1,7 +1,7 @@
 import detection.utils as utils
 import torch
 
-from rcnn.dataset import PennFudanDataset
+from rcnn.dataset import VocalCallsDataset
 from rcnn.helpers import get_transform
 from rcnn.segmentation import get_model_instance_segmentation
 from detection.engine import train_one_epoch, evaluate
@@ -15,8 +15,10 @@ def main():
     # our dataset has two classes only - background and person
     num_classes = 2
     # use our dataset and defined transformations
-    dataset = PennFudanDataset('PennFudanPed', get_transform(train=True))
-    dataset_test = PennFudanDataset('PennFudanPed', get_transform(train=False))
+    dataset = VocalCallsDataset(
+        "/Users/josephgmaa/mask-rcnn/mask-rcnn/data", get_transform(train=True))
+    dataset_test = VocalCallsDataset(
+        "/Users/josephgmaa/mask-rcnn/mask-rcnn/data", get_transform(train=False))
 
     # split the dataset in train and test set
     indices = torch.randperm(len(dataset)).tolist()
